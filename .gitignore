@@ -21,3 +21,5 @@ Thumbs.db
 
 # Etiquetas geradas
 *.zpl
+backend/.env
+.env
