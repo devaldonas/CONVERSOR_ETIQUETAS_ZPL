@@ -1,4 +1,6 @@
-# ZPL Converter
+git add README.md
+git commit -m "docs: adiciona link para download dos executáveis"
+git push# ZPL Converter
 
 Sistema web para converter XML em etiquetas ZPL para impressão em impressoras Zebra.
 
@@ -23,3 +25,12 @@ Sistema web para converter XML em etiquetas ZPL para impressão em impressoras Z
 4. Abrir o frontend no navegador
 
    042bbe91-60e3-4b8a-8db0-ba6ae568232b
+
+## 📥 Download dos Executáveis
+
+Baixe a versão mais recente diretamente da página de [Releases](https://github.com/devaldonas/CONVERSOR_ETIQUETAS_ZPL/releases):
+
+- **Windows:** `AutoDev ZPL CONVERTER - RIACHUELO.exe`
+- **Linux:** `AutoDev ZPL CONVERTER - RIACHUELO-linux`
+
+Basta executar o arquivo e o sistema abrirá no navegador automaticamente.
