@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador ZPL - Riachuelo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #e0e0e0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .full-width {
+            grid-column: span 2;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+
+        .upload-area {
+            border: 2px dashed #3498db;
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f9f9f9;
+        }
+
+        .upload-area:hover {
+            background: #e8f4f8;
+            border-color: #2980b9;
+        }
+
+        .file-info {
+            margin-top: 15px;
+            padding: 10px;
+            background: #d4edda;
+            border-radius: 5px;
+            color: #155724;
+            display: none;
+        }
+
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #2980b9;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .label-preview {
+            background: white;
+            width: 360px;
+            height: 600px;
+            border: 2px solid #333;
+            margin: 0 auto;
+            position: relative;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .preview-field {
+            position: absolute;
+            font-size: 10px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .preview-barcode {
+            position: absolute;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            letter-spacing: 1px;
+            background: white;
+            white-space: nowrap;
+        }
+
+        .fields-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .field-group {
+            margin-bottom: 10px;
+        }
+
+        .field-group label {
+            display: block;
+            font-weight: bold;
+            font-size: 11px;
+            color: #555;
+            margin-bottom: 3px;
+        }
+
+        .field-group input {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+
+        .field-group input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .zpl-code {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 10px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .label-counter {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+            .full-width {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card full-width">
+            <h1>🖨️ Gerador de Etiquetas ZPL - Riachuelo</h1>
+            <p>Formato 60x100mm | 203 DPI | Código de Barras Horizontal</p>
+        </div>
+
+        <div class="card">
+            <h2>📁 Upload do XML</h2>
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <p>📤 Clique para selecionar o arquivo XML</p>
+                <input type="file" id="fileInput" accept=".xml" style="display: none">
+            </div>
+            <div id="fileInfo" class="file-info"></div>
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Processando XML...</p>
+            </div>
+        </div>
+
+        <div class="card" id="previewCard" style="display: none;">
+            <h2>👁️ Preview da Etiqueta</h2>
+            <div id="labelPreview" class="label-preview"></div>
+            <div id="previewInfo" style="text-align: center; margin-top: 10px; font-size: 11px; color: #666;"></div>
+        </div>
+
+        <div class="card full-width" id="dataCard" style="display: none;">
+            <h2>✏️ Dados da Etiqueta <span id="labelCounter" class="label-counter"></span></h2>
+            <div class="fields-grid" id="fieldsContainer"></div>
+            <div class="btn-group">
+                <button onclick="generateCurrentZPL()">🖨️ Gerar ZPL (Atual)</button>
+                <button onclick="generateAllZPL()" id="btnGenerateAll" class="btn-success">📦 Gerar Todas</button>
+                <button onclick="clearForm()" class="btn-secondary">🗑️ Limpar</button>
+            </div>
+        </div>
+
+        <div class="card full-width" id="resultCard" style="display: none;">
+            <h2>📄 Código ZPL</h2>
+            <div class="btn-group">
+                <button onclick="downloadZPL()" class="btn-success">📥 Download</button>
+                <button onclick="copyZPL()">📋 Copiar</button>
+            </div>
+            <pre id="zplResult" class="zpl-code"></pre>
+        </div>
+    </div>
+
+    <script>
+        let allLabels = [];
+        let currentZPL = '';
+        let currentIndex = 0;
+
+        document.getElementById('fileInput').addEventListener('change', handleFile);
+
+        async function handleFile(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            document.getElementById('fileInfo').innerHTML = `<p>📄 Arquivo: ${file.name}</p>`;
+            document.getElementById('fileInfo').style.display = 'block';
+            document.getElementById('loading').style.display = 'block';
+
+            try {
+                const xmlContent = await readFile(file);
+                
+                const response = await fetch('/api/process-all-xml', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ xml: xmlContent })
+                });
+                
+                const result = await response.json();
+                console.log('Resposta:', result);
+                
+                if (result.success && result.allLabels && result.allLabels.length > 0) {
+                    allLabels = result.allLabels;
+                    currentIndex = 0;
+                    
+                    document.getElementById('labelCounter').textContent = `1 / ${allLabels.length}`;
+                    document.getElementById('btnGenerateAll').innerHTML = `📦 Gerar Todas (${allLabels.length})`;
+                    
+                    displayFields(allLabels[0]);
+                    updatePreview(allLabels[0]);
+                    document.getElementById('dataCard').style.display = 'block';
+                    document.getElementById('previewCard').style.display = 'block';
+                    showMessage(`✅ ${allLabels.length} etiqueta(s) encontrada(s)!`, 'success');
+                } else {
+                    showMessage('❌ Nenhuma etiqueta encontrada no XML', 'error');
+                }
+            } catch (error) {
+                console.error(error);
+                showMessage('❌ Erro: ' + error.message, 'error');
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function readFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
+        }
+
+        function displayFields(data) {
+            const container = document.getElementById('fieldsContainer');
+            container.innerHTML = '';
+            
+            const fields = [
+                { name: 'fornecedor', label: 'Fornecedor', value: data.fornecedor || '' },
+                { name: 'destinatario', label: 'Destinatário', value: data.destinatario || '' },
+                { name: 'endereco', label: 'Endereço', value: data.endereco || '' },
+                { name: 'cep', label: 'CEP', value: data.cep || '' },
+                { name: 'cnpj', label: 'CNPJ', value: data.cnpj || '' },
+                { name: 'codigoBarrasTop', label: 'Código Barras (Superior)', value: data.codigoBarrasTop || '' },
+                { name: 'codigoBarrasBottom', label: 'Código Barras (Inferior)', value: data.codigoBarrasBottom || '' },
+                { name: 'codigoArtigo', label: 'Código Artigo', value: data.codigoArtigo || '' },
+                { name: 'destino', label: 'Destino', value: data.destino || '' },
+                { name: 'pedido', label: 'Pedido', value: data.pedido || '' },
+                { name: 'quantidadeTotal', label: 'Quantidade Total', value: data.quantidadeTotal || '' },
+                { name: 'volumes', label: 'Volumes', value: data.volumes || '' },
+                { name: 'dco', label: 'DCO', value: data.dco || '' },
+                { name: 'tipoProduto', label: 'Tipo Produto', value: data.tipoProduto || '' }
+            ];
+
+            fields.forEach(field => {
+                const div = document.createElement('div');
+                div.className = 'field-group';
+                div.innerHTML = `
+                    <label>${field.label}</label>
+                    <input type="text" id="field_${field.name}" value="${field.value}" onchange="updatePreviewFromFields()">
+                `;
+                container.appendChild(div);
+            });
+            
+            if (allLabels.length > 1) {
+                const navDiv = document.createElement('div');
+                navDiv.style.gridColumn = 'span 2';
+                navDiv.innerHTML = `
+                    <div class="nav-buttons">
+                        <button onclick="previousLabel()" class="btn-secondary" style="background:#6c757d">◀ Anterior</button>
+                        <span style="margin:0 10px; line-height:35px;">${currentIndex + 1} de ${allLabels.length}</span>
+                        <button onclick="nextLabel()" class="btn-secondary" style="background:#6c757d">Próxima ▶</button>
+                    </div>
+                `;
+                container.appendChild(navDiv);
+            }
+        }
+
+        function previousLabel() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                const data = allLabels[currentIndex];
+                displayFields(data);
+                updatePreview(data);
+                document.getElementById('labelCounter').textContent = `${currentIndex + 1} / ${allLabels.length}`;
+            }
+        }
+
+        function nextLabel() {
+            if (currentIndex < allLabels.length - 1) {
+                currentIndex++;
+                const data = allLabels[currentIndex];
+                displayFields(data);
+                updatePreview(data);
+                document.getElementById('labelCounter').textContent = `${currentIndex + 1} / ${allLabels.length}`;
+            }
+        }
+
+        function updatePreviewFromFields() {
+            const fields = {};
+            document.querySelectorAll('#fieldsContainer input[type="text"]').forEach(input => {
+                const name = input.id.replace('field_', '');
+                fields[name] = input.value;
+            });
+            updatePreview(fields);
+        }
+
+        function updatePreview(data) {
+            const preview = document.getElementById('labelPreview');
+            
+            const positions = {
+                fornecedor: { x: 15, y: 20, size: 11, bold: true },
+                
+                destinatarioLabel: { x: 15, y: 50, size: 8, text: 'Destinatário' },
+                destinatario: { x: 15, y: 65, size: 10, bold: true },
+                endereco: { x: 15, y: 82, size: 8 },
+                cep: { x: 15, y: 97, size: 8 },
+                cnpj: { x: 15, y: 112, size: 8 },
+                
+                codigoBarrasTop: { x: 50, y: 135, width: 260, height: 20, isBarcode: true, fontSize: 9 },
+                
+                codigoArtigoLabel: { x: 15, y: 170, size: 8, text: 'Código Artigo' },
+                codigoArtigo: { x: 15, y: 185, size: 10, bold: true },
+                destinoLabel: { x: 160, y: 170, size: 8, text: 'Destino' },
+                destino: { x: 160, y: 185, size: 10, bold: true },
+                
+                pedidoLabel: { x: 15, y: 215, size: 8, text: 'Pedido' },
+                pedido: { x: 15, y: 230, size: 10, bold: true },
+                quantidadeLabel: { x: 160, y: 215, size: 8, text: 'Quant. Total' },
+                quantidade: { x: 160, y: 230, size: 10, bold: true },
+                
+                volumesLabel: { x: 15, y: 260, size: 8, text: 'Volumes' },
+                volumes: { x: 15, y: 275, size: 10, bold: true },
+                dcoLabel: { x: 120, y: 260, size: 8, text: 'DCO' },
+                dco: { x: 120, y: 275, size: 10, bold: true },
+                tipoProdutoLabel: { x: 180, y: 260, size: 8, text: 'Tipo Produto' },
+                tipoProduto: { x: 180, y: 275, size: 10, bold: true },
+                
+                codigoBarrasBottom: { x: 50, y: 320, width: 260, height: 20, isBarcode: true, fontSize: 9 }
+            };
+
+            let html = '<div style="position:relative; width:100%; height:100%; background:white; font-family:\'Courier New\', monospace;">';
+            
+            for (const [key, pos] of Object.entries(positions)) {
+                let value = '';
+                if (pos.text) {
+                    value = pos.text;
+                } else if (key === 'codigoBarrasTop') {
+                    value = data.codigoBarrasTop || '';
+                } else if (key === 'codigoBarrasBottom') {
+                    value = data.codigoBarrasBottom || '';
+                } else if (key === 'quantidade') {
+                    value = data.quantidadeTotal || data.quantidade || '';
+                } else {
+                    value = data[key] || '';
+                }
+                
+                if (value) {
+                    if (pos.isBarcode) {
+                        html += `<div class="preview-barcode" style="left:${pos.x}px; top:${pos.y}px; width:${pos.width}px; text-align:center; font-size:${pos.fontSize}px;">${value}</div>`;
+                    } else {
+                        const fontWeight = pos.bold ? 'bold' : 'normal';
+                        html += `<div class="preview-field" style="left:${pos.x}px; top:${pos.y}px; font-size:${pos.size}px; font-weight:${fontWeight};">${value}</div>`;
+                    }
+                }
+            }
+            
+            html += '</div>';
+            preview.innerHTML = html;
+            document.getElementById('previewInfo').innerHTML = `${data.volumes || ''} - ${data.codigoBarrasBottom || ''} - Qtd: ${data.quantidadeTotal || '0'}`;
+        }
+
+        function getCurrentFields() {
+            const fields = {};
+            document.querySelectorAll('#fieldsContainer input[type="text"]').forEach(input => {
+                const name = input.id.replace('field_', '');
+                fields[name] = input.value;
+            });
+            return fields;
+        }
+
+        function generateZPLCode(data) {
+            return `^XA
+^PW800
+^LL480
+^CI28
+^FO750,40^A0R,28,28^FD${data.fornecedor || 'JUNO IMPORTACAO E EXPORTACAO L'}^FS
+^FO710,40^A0R,24,24^FDDestinatario^FS
+^FO680,40^A0R,28,28^FD${data.destinatario || 'CD GUARULHOS NOVO'}^FS
+^FO650,40^A0R,22,22^FD${data.endereco || 'RUA LANDRI SALES 1070, G01'}^FS
+^FO620,40^A0R,22,22^FD${data.cep || 'CEP: 07250-130GUARULHOS-SP'}^FS
+^FO590,40^A0R,22,22^FD${data.cnpj || 'CNPJ: 33200056036097'}^FS
+^FO490,40
+^BY2,2,80
+^BCR,80,Y,N,N
+^FD${data.codigoBarrasTop || 'L16034937001017116'}^FS
+^FO410,40^A0R,24,24^FDCodigo Artigo^FS
+^FO380,40^A0R,24,24^FD${data.codigoArtigo || '16034937001'}^FS
+^FO310,40^A0R,24,24^FDPedido^FS
+^FO280,40^A0R,24,24^FD${data.pedido || '6702612058'}^FS
+^FO210,40^A0R,22,22^FDVolumes^FS
+^FO180,40^A0R,28,28^FD${data.volumes || 'N. 1/5'}^FS
+^FO210,240^A0R,22,22^FDDCO^FS
+^FO180,240^A0R,28,28^FD${data.dco || '283'}^FS
+^FO410,340^A0R,22,22^FDDestino^FS
+^FO380,340^A0R,28,28^FD${data.destino || 'C270'}^FS
+^FO310,340^A0R,22,22^FDQuant. Total^FS
+^FO280,340^A0R,28,28^FD${data.quantidadeTotal || '17'}^FS
+^FO210,340^A0R,22,22^FDTipo Produto^FS
+^FO180,340^A0R,28,28^FD${data.tipoProduto || 'AR'}^FS
+^FO80,40
+^BY2,2,80
+^BCR,80,Y,N,N
+^FD${data.codigoBarrasBottom || 'T00000041858206'}^FS
+^XZ`;
+        }
+
+        function generateCurrentZPL() {
+            const fields = getCurrentFields();
+            currentZPL = generateZPLCode(fields);
+            document.getElementById('zplResult').textContent = currentZPL;
+            document.getElementById('resultCard').style.display = 'block';
+            showMessage('✅ ZPL gerado!', 'success');
+        }
+
+        function generateAllZPL() {
+            let allZPL = '';
+            for (let i = 0; i < allLabels.length; i++) {
+                allZPL += generateZPLCode(allLabels[i]) + '\n';
+            }
+            currentZPL = allZPL;
+            document.getElementById('zplResult').textContent = currentZPL;
+            document.getElementById('resultCard').style.display = 'block';
+            showMessage(`✅ ${allLabels.length} etiquetas geradas!`, 'success');
+        }
+
+        function downloadZPL() {
+            const blob = new Blob([currentZPL], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `etiquetas_${Date.now()}.zpl`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showMessage('📥 Download iniciado!', 'success');
+        }
+
+        async function copyZPL() {
+            await navigator.clipboard.writeText(currentZPL);
+            showMessage('📋 Código copiado!', 'success');
+        }
+
+        function clearForm() {
+            document.getElementById('dataCard').style.display = 'none';
+            document.getElementById('resultCard').style.display = 'none';
+            document.getElementById('previewCard').style.display = 'none';
+            document.getElementById('fileInfo').style.display = 'none';
+            document.getElementById('fileInput').value = '';
+            allLabels = [];
+            showMessage('Formulário limpo', 'success');
+        }
+
+        function showMessage(msg, type) {
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = msg;
+            document.querySelector('.container').insertBefore(div, document.querySelector('.container').firstChild);
+            setTimeout(() => div.remove(), 3000);
+        }
+    </script>
+</body>
+</html>

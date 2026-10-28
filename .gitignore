@@ -1,0 +1,23 @@
+# Dependências
+node_modules/
+package-lock.json
+
+# Executáveis
+*.exe
+AutoDev ZPL CONVERTER - RIACHUELO
+AutoDev ZPL CONVERTER - RIACHUELO-linux
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Etiquetas geradas
+*.zpl

@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerador de Etiquetas ZPL - Riachuelo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .upload-area {
+            border: 3px dashed #3498db;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            background: #f0f8ff;
+            border-color: #2980b9;
+        }
+
+        .file-info {
+            margin-top: 15px;
+            padding: 10px;
+            background: #e8f4f8;
+            border-radius: 8px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 15px;
+            transition: all 0.3s;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52,152,219,0.4);
+        }
+
+        button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .zpl-code {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .preview {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .label-preview {
+            display: inline-block;
+            background: white;
+            border: 2px solid #333;
+            padding: 20px;
+            font-family: monospace;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .fields-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .field-group {
+            margin-bottom: 10px;
+        }
+
+        .field-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+
+        .field-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🖨️ Gerador de Etiquetas ZPL</h1>
+            <p>Riachuelo - 60x100mm (203 DPI)</p>
+        </div>
+
+        <div class="card">
+            <h2>📁 Upload do XML</h2>
+            <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+                <p>📤 Clique ou arraste o arquivo XML aqui</p>
+                <input type="file" id="fileInput" accept=".xml" style="display: none">
+            </div>
+            <div id="fileInfo" class="file-info" style="display: none;"></div>
+            
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Processando...</p>
+            </div>
+        </div>
+
+        <div id="dataCard" class="card" style="display: none;">
+            <h2>✏️ Dados da Etiqueta</h2>
+            <div class="fields-grid" id="fieldsContainer"></div>
+            <div class="btn-group">
+                <button onclick="generateZPL()">🖨️ Gerar ZPL</button>
+                <button onclick="clearForm()">🗑️ Limpar</button>
+            </div>
+        </div>
+
+        <div id="resultCard" class="card" style="display: none;">
+            <h2>📄 Resultado</h2>
+            <div class="btn-group">
+                <button onclick="downloadZPL()">📥 Download ZPL</button>
+                <button onclick="copyZPL()">📋 Copiar</button>
+            </div>
+            <pre id="zplResult" class="zpl-code"></pre>
+            
+            <div class="preview">
+                <h3>👁️ Preview</h3>
+                <div id="preview" class="label-preview"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentData = {};
+        let currentZPL = '';
+
+        document.getElementById('fileInput').addEventListener('change', handleFile);
+
+        async function handleFile(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            document.getElementById('fileInfo').innerHTML = `<p>📄 Arquivo: ${file.name}</p>`;
+            document.getElementById('fileInfo').style.display = 'block';
+            document.getElementById('loading').style.display = 'block';
+
+            try {
+                const xmlContent = await readFile(file);
+                const response = await processXML(xmlContent);
+                
+                if (response.success) {
+                    currentData = response.data;
+                    displayFields(response.data);
+                    document.getElementById('dataCard').style.display = 'block';
+                    showMessage('✅ XML processado com sucesso!', 'success');
+                } else {
+                    showMessage('❌ Erro ao processar XML', 'error');
+                }
+            } catch (error) {
+                showMessage('❌ Erro: ' + error.message, 'error');
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function readFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = e => resolve(e.target.result);
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
+        }
+
+        async function processXML(xmlContent) {
+            const response = await fetch('http://localhost:3000/api/process-xml', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ xml: xmlContent })
+            });
+            return response.json();
+        }
+
+        function displayFields(data) {
+            const container = document.getElementById('fieldsContainer');
+            container.innerHTML = '';
+            
+            const fields = [
+                { name: 'remetente', label: 'Remetente', value: data.remetente || '' },
+                { name: 'destinatario', label: 'Destinatário', value: data.destinatario || '' },
+                { name: 'endereco', label: 'Endereço', value: data.endereco || '' },
+                { name: 'cep', label: 'CEP', value: data.cep || '' },
+                { name: 'cnpj', label: 'CNPJ', value: data.cnpj || '' },
+                { name: 'codigoBarras', label: 'Código de Barras', value: data.codigoBarras || '' },
+                { name: 'pedido', label: 'Número do Pedido', value: data.pedido || '' },
+                { name: 'volume', label: 'Volume', value: data.volume || '' },
+                { name: 'quantidade', label: 'Quantidade', value: data.quantidade || '' }
+            ];
+
+            fields.forEach(field => {
+                const div = document.createElement('div');
+                div.className = 'field-group';
+                div.innerHTML = `
+                    <label>${field.label}</label>
+                    <input type="text" id="field_${field.name}" value="${field.value}" placeholder="Digite o valor...">
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function generateZPL() {
+            const fields = {};
+            const inputs = document.querySelectorAll('#fieldsContainer input');
+            inputs.forEach(input => {
+                const name = input.id.replace('field_', '');
+                fields[name] = input.value;
+            });
+
+            const zpl = generateZPLCode(fields);
+            currentZPL = zpl;
+            
+            document.getElementById('zplResult').textContent = zpl;
+            document.getElementById('resultCard').style.display = 'block';
+            
+            generatePreview(fields);
+            showMessage('✅ ZPL gerado com sucesso!', 'success');
+        }
+
+        function generateZPLCode(data) {
+            return `^XA
+^PW800
+^LL480
+^CI28
+^FO750,40^A0R,28,28^FD${data.remetente || 'JUNO IMPORTACAO E EXPORTACAO L'}^FS
+^FO710,40^A0R,24,24^FDDestinatario^FS
+^FO680,40^A0R,28,28^FD${data.destinatario || 'CD GUARULHOS NOVO'}^FS
+^FO650,40^A0R,22,22^FD${data.endereco || 'RUA LANDRI SALES 1070, G01'}^FS
+^FO620,40^A0R,22,22^FD${data.cep || 'CEP: 07250-130GUARULHOS-SP'}^FS
+^FO590,40^A0R,22,22^FD${data.cnpj || 'CNPJ: 33200056036097'}^FS
+^FO490,40
+^BY2,2,80
+^BCR,80,Y,N,N
+^FD${data.codigoBarras || 'T00000041810381'}^FS
+^FO410,40^A0R,24,24^FDCodigo Artigo^FS
+^FO380,40^A0R,24,24^FD000000016319672001^FS
+^FO310,40^A0R,24,24^FDPedido^FS
+^FO280,40^A0R,24,24^FD${data.pedido || '6702609737'}^FS
+^FO210,40^A0R,22,22^FDVolumes^FS
+^FO180,40^A0R,28,28^FD${data.volume || 'N. 1/7'}^FS
+^FO210,240^A0R,22,22^FDDCO^FS
+^FO180,240^A0R,28,28^FD283^FS
+^FO410,340^A0R,22,22^FDDestino^FS
+^FO380,340^A0R,28,28^FDC270^FS
+^FO310,340^A0R,22,22^FDQuant. Total^FS
+^FO280,340^A0R,28,28^FD${data.quantidade || '22'}^FS
+^FO210,340^A0R,22,22^FDTipo Produto^FS
+^FO180,340^A0R,28,28^FDAR^FS
+^FO80,40
+^BY2,2,80
+^BCR,80,Y,N,N
+^FD${data.codigoBarras || 'T00000041810381'}^FS
+^XZ`;
+        }
+
+        function generatePreview(data) {
+            const preview = document.getElementById('preview');
+            preview.innerHTML = `
+                <div style="width:300px;height:500px;border:1px solid #ccc;padding:10px;position:relative;">
+                    <div style="font-size:14px;font-weight:bold;">${data.remetente || 'Remetente'}</div>
+                    <div style="font-size:12px;margin-top:5px;">Destinatário: ${data.destinatario || 'Destinatário'}</div>
+                    <div style="font-size:11px;">${data.endereco || 'Endereço'}</div>
+                    <div style="font-size:11px;">${data.cep || 'CEP'}</div>
+                    <div style="font-size:11px;">${data.cnpj || 'CNPJ'}</div>
+                    <div style="margin-top:20px;font-size:12px;">Código: ${data.codigoBarras || 'Código'}</div>
+                    <div style="margin-top:20px;">Pedido: ${data.pedido || 'Pedido'}</div>
+                    <div>Volume: ${data.volume || 'Volume'}</div>
+                    <div>Quantidade: ${data.quantidade || 'Quantidade'}</div>
+                </div>
+            `;
+        }
+
+        function downloadZPL() {
+            const blob = new Blob([currentZPL], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `etiqueta_${Date.now()}.zpl`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showMessage('✅ Arquivo baixado!', 'success');
+        }
+
+        async function copyZPL() {
+            await navigator.clipboard.writeText(currentZPL);
+            showMessage('✅ ZPL copiado!', 'success');
+        }
+
+        function clearForm() {
+            document.getElementById('dataCard').style.display = 'none';
+            document.getElementById('resultCard').style.display = 'none';
+            document.getElementById('fileInfo').style.display = 'none';
+            document.getElementById('fileInput').value = '';
+            currentData = {};
+            currentZPL = '';
+            showMessage('Formulário limpo', 'success');
+        }
+
+        function showMessage(msg, type) {
+            const div = document.createElement('div');
+            div.className = type;
+            div.textContent = msg;
+            document.querySelector('.container').insertBefore(div, document.querySelector('.container').firstChild);
+            setTimeout(() => div.remove(), 3000);
+        }
+    </script>
+</body>
+</html>
